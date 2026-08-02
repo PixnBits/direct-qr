@@ -25,6 +25,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # Sanity: built index must reference hashed assets, never /src/main.tsx
+      - name: Verify production index.html
+        run: |
+          test -f dist/index.html
+          grep -q '/direct-qr/assets/' dist/index.html
+          ! grep -q 'src/main.tsx' dist/index.html
+          ls -la dist/assets/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

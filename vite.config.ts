@@ -6,10 +6,11 @@ import tailwindcss from "@tailwindcss/vite";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
-// Static SPA — GitHub Pages & any static host.
-// `0.0.0.0:8080` is the live-preview contract.
-export default defineConfig({
-  base: "./",
+// Static SPA for GitHub Pages (project site: /direct-qr/) and local preview.
+// Dev keeps base "/" so the live preview root works; production build uses
+// the project subpath so assets resolve on pixnbits.github.io/direct-qr/.
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/direct-qr/" : "/",
   server: {
     host: "0.0.0.0",
     port: 8080,
@@ -31,4 +32,4 @@ export default defineConfig({
     sourcemap: true,
     assetsDir: "assets",
   },
-});
+}));
