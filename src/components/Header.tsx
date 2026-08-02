@@ -13,7 +13,7 @@ export function Header() {
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <a href="#top" className="group flex items-center gap-2.5 no-underline">
           <span className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-bg text-fg transition-colors group-hover:border-border-strong">
-            <QrCode className="h-4.5 w-4.5" aria-hidden />
+            <QrCode className="h-4 w-4" aria-hidden />
           </span>
           <span className="flex flex-col">
             <span className="font-display text-lg font-semibold leading-none tracking-tight text-fg">
