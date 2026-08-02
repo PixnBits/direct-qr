@@ -1,10 +1,12 @@
 import { useCallback, useId, useState } from "react";
 import {
   AlertTriangle,
+  Camera,
   CheckCircle2,
   ClipboardPaste,
   ExternalLink,
   FileUp,
+  ImageIcon,
   ShieldAlert,
   ShieldCheck,
   XCircle,
@@ -26,16 +28,18 @@ type State =
     };
 
 export function Validator() {
-  const inputId = useId();
+  const libraryId = useId();
+  const cameraId = useId();
   const [dragOver, setDragOver] = useState(false);
   const [state, setState] = useState<State>({ status: "idle" });
   const [preview, setPreview] = useState<string | null>(null);
 
   const processFile = useCallback(async (file: File) => {
     setState({ status: "loading" });
-    if (preview) URL.revokeObjectURL(preview);
-    const url = URL.createObjectURL(file);
-    setPreview(url);
+    setPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
 
     try {
       const result = await decodeQrFromFile(file);
@@ -55,7 +59,17 @@ export function Validator() {
         message: e instanceof Error ? e.message : "Decode failed.",
       });
     }
-  }, [preview]);
+  }, []);
+
+  const onFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      // Reset so the same file can be re-selected after a failed decode
+      e.target.value = "";
+      if (f) void processFile(f);
+    },
+    [processFile],
+  );
 
   const onPaste = useCallback(async () => {
     setState({ status: "loading" });
@@ -64,7 +78,7 @@ export function Validator() {
         setState({
           status: "error",
           message:
-            "Clipboard image paste is not available in this browser. Use file upload or drag-and-drop instead.",
+            "Clipboard image paste is not available in this browser. Use Take photo or Choose image instead.",
         });
         return;
       }
@@ -105,7 +119,7 @@ export function Validator() {
       <SectionHeading
         eyebrow="Validator"
         title="Decode a QR and inspect the real payload"
-        description="Upload or paste a QR image. Decoding happens entirely in your browser. If the payload is a URL, we check it against a list of common intermediary and shortener domains."
+        description="Upload, photograph, or paste a QR image. Decoding happens entirely in your browser. If the payload is a URL, we check it against a list of common intermediary and shortener domains."
       />
 
       <div
@@ -127,24 +141,45 @@ export function Validator() {
             <FileUp className="h-5 w-5" aria-hidden />
           </span>
           <p className="mt-3 text-sm font-medium text-fg">
-            Drop a QR image here, or choose a file
+            Drop a QR image, take a photo, or choose a file
           </p>
           <p className="mt-1 max-w-md text-xs text-fg-muted">
-            PNG, JPEG, or WebP. Crop tightly around the code for best results.
+            PNG, JPEG, or WebP. On a phone, use Take photo to open the camera, or Choose image for
+            your library. Crop tightly around the code for best results.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-fg transition-opacity hover:opacity-90">
+            {/*
+              Two separate inputs: capture=environment nudges Android/iOS to open the
+              rear camera; the library input omits capture so the full system picker
+              (Photos / Files / sometimes Camera) still appears.
+            */}
+            <label
+              htmlFor={cameraId}
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-fg transition-opacity hover:opacity-90"
+            >
+              <Camera className="h-4 w-4" aria-hidden />
+              Take photo
+              <input
+                id={cameraId}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={onFileChange}
+              />
+            </label>
+            <label
+              htmlFor={libraryId}
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-border bg-bg-elevated px-4 text-sm font-medium text-fg transition-colors hover:bg-bg-subtle"
+            >
+              <ImageIcon className="h-4 w-4" aria-hidden />
               Choose image
               <input
-                id={inputId}
+                id={libraryId}
                 type="file"
                 accept="image/*"
                 className="sr-only"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void processFile(f);
-                  e.target.value = "";
-                }}
+                onChange={onFileChange}
               />
             </label>
             <Button type="button" variant="secondary" onClick={() => void onPaste()}>
@@ -152,6 +187,12 @@ export function Validator() {
               Paste from clipboard
             </Button>
           </div>
+          <p className="mt-3 max-w-md text-xs leading-relaxed text-fg-subtle">
+            Phones: <strong className="font-medium text-fg-muted">Take photo</strong> prefers the
+            rear camera. <strong className="font-medium text-fg-muted">Choose image</strong> opens
+            Photos or Files (many devices also list Camera there). Desktop browsers may offer a
+            webcam when you use Take photo.
+          </p>
         </div>
       </div>
 
