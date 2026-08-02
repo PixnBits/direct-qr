@@ -4,7 +4,7 @@
 
 Many free QR tools create codes that point at *their* short links. Later those links can require accounts, show ads, force app downloads, or break entirely. Direct QR only ever encodes the payload you provide — fully in the browser, with no server storage.
 
-- **Live demo path:** open the built site (or `npm run dev`) and use the generator / validator on one page.
+- **Live site:** [pixnbits.github.io/direct-qr](https://pixnbits.github.io/direct-qr/)
 - **Repository:** [github.com/PixnBits/direct-qr](https://github.com/PixnBits/direct-qr)
 - **License:** MIT
 
@@ -79,7 +79,7 @@ npm install
 npm run dev
 ```
 
-Open the printed local URL (default Vite port is configured to **8080**).
+Open the printed local URL (default port **8080**).
 
 ```bash
 npm run build     # typecheck + production build → dist/
@@ -89,56 +89,18 @@ npm run typecheck
 
 ## Deploy on GitHub Pages
 
-This project builds a static site into `dist/` with relative asset paths (`base: './'`), so it works at the root of a Pages site or under a project subpath.
+Production builds use `base: '/direct-qr/'` so assets load correctly at  
+`https://pixnbits.github.io/direct-qr/`.
 
-1. Push this repository to GitHub (already set up as `PixnBits/direct-qr` if you are following the official repo).
-2. In the repo **Settings → Pages**:
-   - **Source:** GitHub Actions, **or**
-   - Deploy from branch: use a workflow that builds and uploads `dist`, or the classic “branch /docs” flow after copying `dist` contents.
-3. Suggested GitHub Actions workflow (create `.github/workflows/pages.yml`):
+**Important:** Pages must use the **GitHub Actions** source (not “Deploy from a branch” on `main`). Deploying the branch root serves the unbuilt source `index.html` (`/src/main.tsx`) and the page stays blank.
 
-```yaml
-name: Deploy to GitHub Pages
-on:
-  push:
-    branches: [main]
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
-```
+1. Repo **Settings → Pages → Source:** **GitHub Actions**
+2. Push to `main` (or run the **Deploy to GitHub Pages** workflow manually)
+3. The workflow builds `dist/`, verifies the production index references `/direct-qr/assets/…`, then deploys via `actions/deploy-pages`
 
-4. After the first successful run, the site is available at  
-   `https://pixnbits.github.io/direct-qr/`  
-   (or your user/org Pages URL).
+A `gh-pages` branch with the built site is also published for reference; the live site is driven by the Actions deployment.
 
-You can also drop the contents of `dist/` onto any static host (Netlify, Cloudflare Pages, S3, etc.).
+You can also drop the contents of `dist/` onto any static host (Netlify, Cloudflare Pages, S3, etc.). For a root-domain host, change `base` in `vite.config.ts` to `'/'` (or `'./'`) before building.
 
 ## Stack
 
