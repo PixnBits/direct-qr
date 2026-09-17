@@ -6,6 +6,7 @@ import {
   ClipboardPaste,
   ExternalLink,
   FileUp,
+  Info,
   ImageIcon,
   ShieldAlert,
   ShieldCheck,
@@ -285,6 +286,11 @@ function VerdictCard({ analysis }: { analysis: UrlAnalysis }) {
       icon: XCircle,
       title: analysis.label,
     },
+    "first-party": {
+      tone: "warn" as const,
+      icon: Info,
+      title: analysis.label,
+    },
     suspicious: {
       tone: "warn" as const,
       icon: ShieldAlert,
@@ -312,6 +318,12 @@ function VerdictCard({ analysis }: { analysis: UrlAnalysis }) {
             <p className="mt-2 flex items-start gap-1.5 text-xs">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               Prefer regenerating with Direct QR using your final destination URL.
+            </p>
+          ) : null}
+          {analysis.verdict === "first-party" ? (
+            <p className="mt-2 text-xs">
+              Optional: encode the full destination URL if the print run needs to outlive this
+              short domain.
             </p>
           ) : null}
         </div>

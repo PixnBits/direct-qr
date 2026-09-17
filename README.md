@@ -38,7 +38,7 @@ Primary audience: non-technical publishers (menus, posters, packaging, handouts)
 - Client-side decode ([jsQR](https://github.com/cozmo/jsQR))
 - Raw payload display
 - URL analysis against a hardcoded list of common shorteners and dynamic-QR / tracking domains
-- Clear “direct content” vs “third-party redirector” verdict
+- Clear “direct content” vs “first-party shortener” vs “third-party redirector” verdict
 - Cautious “Open link” action
 
 ### Education
