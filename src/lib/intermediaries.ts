@@ -16,7 +16,6 @@ const EXACT_HOSTS = new Set(
     "bitly.com",
     "tinyurl.com",
     "t.co",
-    "goo.gl",
     "ow.ly",
     "buff.ly",
     "is.gd",
@@ -31,9 +30,6 @@ const EXACT_HOSTS = new Set(
     "short.io",
     "short.cm",
     "s.id",
-    "lnkd.in",
-    "amzn.to",
-    "youtu.be",
     "trib.al",
     "soo.gd",
     "clicky.me",
@@ -48,17 +44,6 @@ const EXACT_HOSTS = new Set(
     "urlzs.com",
     "clck.ru",
     "vk.cc",
-    "wa.me",
-    "fb.me",
-    "pin.it",
-    "spoti.fi",
-    "sptfy.com",
-    "apple.co",
-    "go.microsoft.com",
-    "aka.ms",
-    "msft.it",
-    "g.co",
-    "maps.app.goo.gl",
     "j.mp",
     "eepurl.com",
     "dub.sh",
@@ -70,10 +55,6 @@ const EXACT_HOSTS = new Set(
     "ln.run",
     "snip.ly",
     "replug.io",
-    "forms.gle",
-    "g.page",
-    "goo.gle",
-    "a.co",
     "wp.me",
     "hubs.ly",
     "hub.am",
@@ -281,6 +262,30 @@ const EXACT_HOSTS = new Set(
   ].map((h) => h.toLowerCase()),
 );
 
+type FirstPartyInfo = { owner: string; product: string };
+
+const FIRST_PARTY_SHORTS: Record<string, FirstPartyInfo> = {
+  "forms.gle": { owner: "Google", product: "Google Forms" },
+  "g.page": { owner: "Google", product: "Google Business Profile" },
+  "goo.gle": { owner: "Google", product: "Google" },
+  "goo.gl": { owner: "Google", product: "Google" },
+  "g.co": { owner: "Google", product: "Google" },
+  "maps.app.goo.gl": { owner: "Google", product: "Google Maps" },
+  "youtu.be": { owner: "YouTube", product: "YouTube" },
+  "wa.me": { owner: "WhatsApp", product: "WhatsApp" },
+  "fb.me": { owner: "Facebook", product: "Facebook" },
+  "pin.it": { owner: "Pinterest", product: "Pinterest" },
+  "lnkd.in": { owner: "LinkedIn", product: "LinkedIn" },
+  "amzn.to": { owner: "Amazon", product: "Amazon" },
+  "a.co": { owner: "Amazon", product: "Amazon" },
+  "apple.co": { owner: "Apple", product: "Apple" },
+  "aka.ms": { owner: "Microsoft", product: "Microsoft" },
+  "msft.it": { owner: "Microsoft", product: "Microsoft" },
+  "go.microsoft.com": { owner: "Microsoft", product: "Microsoft" },
+  "spoti.fi": { owner: "Spotify", product: "Spotify" },
+  "sptfy.com": { owner: "Spotify", product: "Spotify" },
+};
+
 /** Host suffixes that almost always indicate a shortener / tracking hop. */
 const SUSPICIOUS_SUFFIXES = [
   ".page.link",
@@ -341,7 +346,7 @@ export type UrlAnalysis = {
   isUrl: boolean;
   href: string | null;
   host: string | null;
-  verdict: "direct" | "redirector" | "suspicious" | "not-url";
+  verdict: "direct" | "first-party" | "redirector" | "suspicious" | "not-url";
   reasons: string[];
   label: string;
   detail: string;
@@ -357,6 +362,15 @@ function hostMatchesKnown(host: string): string | null {
   // match subdomains of known hosts (e.g. m.bit.ly, qr.generatorqr.com)
   for (const known of EXACT_HOSTS) {
     if (h.endsWith(`.${known}`)) return known;
+  }
+  return null;
+}
+
+function firstPartyMatch(host: string): [string, FirstPartyInfo] | null {
+  const h = stripWww(host);
+  if (FIRST_PARTY_SHORTS[h]) return [h, FIRST_PARTY_SHORTS[h]];
+  for (const key of Object.keys(FIRST_PARTY_SHORTS)) {
+    if (h.endsWith(`.${key}`)) return [key, FIRST_PARTY_SHORTS[key]];
   }
   return null;
 }
@@ -425,6 +439,21 @@ export function analysePayload(payload: string): UrlAnalysis {
   }
 
   const host = stripWww(url.hostname);
+
+  const firstParty = firstPartyMatch(host);
+  if (firstParty) {
+    const [key, { owner, product }] = firstParty;
+    return {
+      isUrl: true,
+      href: url.href,
+      host,
+      verdict: "first-party",
+      reasons: [`Host “${host}” is ${owner}'s official shortener for ${product} (“${key}”).`],
+      label: "Known first-party shortener",
+      detail: `${key} is ${owner}'s official short domain for ${product}. Scanners hop through ${owner} to that product. That is a redirect you do not fully control, and ${owner} can retire the short — but it is not a third-party QR dashboard that can swap the destination or inject ads. Prefer the full destination URL if the print run needs to outlive the short domain.`,
+    };
+  }
+
   const reasons: string[] = [];
   let knownMatch = false;
 
